@@ -51,7 +51,7 @@ class JSDAdvantage(AdvantageFn):
         JSD = beta * KL(teacher || mixture) + (1-beta) * KL(student || mixture)
         """
         beta = self.lambda_coef
-        
+
         # Ensure probabilities for the KL weighting
         # We use teacher/student logprobs to scale the log-difference
         p_teacher = torch.exp(teacher_logprobs)
@@ -60,7 +60,7 @@ class JSDAdvantage(AdvantageFn):
         if beta <= 0:
             # If no teacher influence, divergence is 0 (distributions are the same mixture)
             return torch.zeros_like(student_logprobs)
-        
+
         if beta >= 1:
             # If no student influence, divergence is 0
             return torch.zeros_like(student_logprobs)
@@ -68,19 +68,19 @@ class JSDAdvantage(AdvantageFn):
         # Compute mixture log probabilities: m = beta * teacher + (1-beta) * student
         log_beta = torch.log(torch.tensor(beta, device=student_logprobs.device))
         log_1_minus_beta = torch.log(torch.tensor(1 - beta, device=student_logprobs.device))
-        
+
         # log(m)
         mixture_log_probs = torch.logsumexp(
             torch.stack([student_logprobs + log_1_minus_beta, teacher_logprobs + log_beta]),
             dim=0,
         )
-        
+
         # KL(teacher || mixture) = P_t * (log P_t - log M)
         kl_teacher = p_teacher * (teacher_logprobs - mixture_log_probs)
-        
+
         # KL(student || mixture) = P_s * (log P_s - log M)
         kl_student = p_student * (student_logprobs - mixture_log_probs)
-        
+
         # Weighted JSD
         jsd = beta * kl_teacher + (1 - beta) * kl_student
 
@@ -112,7 +112,7 @@ class JSDAdvantage(AdvantageFn):
 
         # Compute JSD per token
         jsd_per_token = self._js_divergence_per_token(old_log_probs, teacher_log_probs)
-        
+
         # For advantage function, use JSD directly
         # Since we want to minimize JSD, we use negative JSD as advantage
         # This means: lower JSD (better alignment) → higher advantage
